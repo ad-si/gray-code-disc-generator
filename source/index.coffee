@@ -7,14 +7,14 @@ module.exports.shaven = (config, tools) ->
 		bits: 8
 
 		# Dimenstions
-		diskDiameter: 100
+		diskDiameter: 80
 		# or
 		trackWidth: null
 		trackMargin: 0
 
-		axleDiameter: 20
-		axleOffset: 0
-		padding: 0
+		axleDiameter: 13
+		axleMargin: 2
+		discPadding: 0
 
 	{
 		diskDiameter
@@ -22,7 +22,7 @@ module.exports.shaven = (config, tools) ->
 		trackWidth
 		trackMargin
 		axleDiameter
-		axleOffset
+		axleMargin
 		padding
 	} = Object.assign({}, defaults, config)
 
@@ -30,7 +30,10 @@ module.exports.shaven = (config, tools) ->
 	numberOfSections = Math.pow(2, bits)
 	tracksWidth = if trackWidth \
 		then (trackWidth + trackMargin) * bits
-		else diskDiameter/2 - axleDiameter/2
+		else diskDiameter/2 - axleDiameter/2 - axleMargin
+
+	if not trackWidth
+		trackWidth = tracksWidth / bits
 
 
 	discs = new Array bits
@@ -45,10 +48,8 @@ module.exports.shaven = (config, tools) ->
 
 					return {
 						radius: (axleDiameter/2) +
-							(
-								(position + 1) *
-								((diskDiameter - axleDiameter) / (bits * 2))
-							)
+							axleMargin +
+							((position + 1) * trackWidth)
 
 						startAngle: sectionAngle * index
 						endAngle: sectionAngle * (index + 1)
@@ -119,7 +120,7 @@ module.exports.shaven = (config, tools) ->
 						v#{diskDiameter}
 						h#{-diskDiameter}
 						z
-						M#{tracksWidth},#{diskDiameter/2}
+						M#{tracksWidth + axleMargin},#{diskDiameter/2}
 						a 1,1 0 0 0 #{axleDiameter},0
 						a 1,1 0 0 0 #{-axleDiameter},0
 						z"
@@ -128,10 +129,14 @@ module.exports.shaven = (config, tools) ->
 		]
 		['g'
 			{
-				transform: 'translate(50,50)'
+				transform: "translate(#{diskDiameter/2},#{diskDiameter/2})"
 				'clip-path': 'url(#discWithAxleHole)'
 			}
 			# The discs - one for each bit position
 			discs...
+			['circle', {
+				r: axleMargin + axleDiameter/2
+				fill: 'lightgray'
+			}]
 		]
 	]
