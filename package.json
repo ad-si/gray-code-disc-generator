@@ -1,0 +1,18 @@
+{
+  "name": "gray-code-disk-generator",
+  "version": "0.1.0",
+  "description": "Create a gray-code disk in SVG with a specified resolution.",
+  "main": "source/index.coffee",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "gray code",
+    "generator"
+  ],
+  "author": "Adrian Sieber",
+  "license": "ISC",
+  "dependencies": {
+    "gray-code": "0.0.0"
+  }
+}
