@@ -3,15 +3,34 @@ grayCode = require 'gray-code'
 module.exports.shaven = (config, tools) ->
 
 	defaults =
-		width: 100
-		height: 100
+		# Resolution
 		bits: 8
 
-	{width, height, bits} = Object.assign({}, defaults, config)
+		# Dimenstions
+		diskDiameter: 100
+		# or
+		trackWidth: null
+		trackMargin: 0
+
+		axleDiameter: 20
+		axleOffset: 0
+		padding: 0
+
+	{
+		diskDiameter
+		bits
+		trackWidth
+		trackMargin
+		axleDiameter
+		axleOffset
+		padding
+	} = Object.assign({}, defaults, config)
 
 	grayCodeTable = grayCode bits
 	numberOfSections = Math.pow(2, bits)
-	smallestDimenstion = if width > height then width else height
+	tracksWidth = if trackWidth \
+		then (trackWidth + trackMargin) * bits
+		else diskDiameter/2 - axleDiameter/2
 
 
 	discs = new Array bits
@@ -25,8 +44,12 @@ module.exports.shaven = (config, tools) ->
 					sectionAngle = 360 / numberOfSections
 
 					return {
-						radius: (position + 1) * \
-							(smallestDimenstion / (bits * 2))
+						radius: (axleDiameter/2) +
+							(
+								(position + 1) *
+								((diskDiameter - axleDiameter) / (bits * 2))
+							)
+
 						startAngle: sectionAngle * index
 						endAngle: sectionAngle * (index + 1)
 						fill: if grayCodeTable[index][position] % 2 is 0 \
@@ -73,24 +96,42 @@ module.exports.shaven = (config, tools) ->
 
 	return [
 		'svg'
-		width: width + 'mm'
-		height: height + 'mm'
+		width: diskDiameter + 'mm'
+		height: diskDiameter + 'mm'
 		viewBox: [
 			0
 			0
-			width
-			height
+			diskDiameter
+			diskDiameter
 		]
 		['defs',
 			['clipPath#discWithAxleHole'
-
+				{
+					transform: [{
+						type: 'translate'
+						x: -diskDiameter/2
+						y: -diskDiameter/2
+					}]
+				}
+				['path', {
+					d: "M0,0
+						h#{diskDiameter}
+						v#{diskDiameter}
+						h#{-diskDiameter}
+						z
+						M#{tracksWidth},#{diskDiameter/2}
+						a 1,1 0 0 0 #{axleDiameter},0
+						a 1,1 0 0 0 #{-axleDiameter},0
+						z"
+				}]
 			]
 		]
-		['g',
+		['g'
 			{
 				transform: 'translate(50,50)'
+				'clip-path': 'url(#discWithAxleHole)'
 			}
-			# The discs - one for each position
+			# The discs - one for each bit position
 			discs...
 		]
 	]
