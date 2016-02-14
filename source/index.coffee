@@ -7,30 +7,36 @@ module.exports.shaven = (config, tools) ->
 		bits: 8
 
 		# Dimenstions
-		diskDiameter: 80
+		discDiameter: 120
 		# or
 		trackWidth: null
 		trackMargin: 0
 
 		axleDiameter: 13
-		axleMargin: 2
-		discPadding: 0
+		axleMargin: 5
+		discPadding: 5
+		backgroundColor: 'black'
+		foregroundColor: 'white'
+		fringeColor: 'lightgray'
 
 	{
-		diskDiameter
+		discDiameter
 		bits
 		trackWidth
 		trackMargin
 		axleDiameter
 		axleMargin
-		padding
+		discPadding
+		backgroundColor
+		foregroundColor
+		fringeColor
 	} = Object.assign({}, defaults, config)
 
 	grayCodeTable = grayCode bits
 	numberOfSections = Math.pow(2, bits)
 	tracksWidth = if trackWidth \
 		then (trackWidth + trackMargin) * bits
-		else diskDiameter/2 - axleDiameter/2 - axleMargin
+		else discDiameter/2 - axleDiameter/2 - axleMargin - discPadding
 
 	if not trackWidth
 		trackWidth = tracksWidth / bits
@@ -54,8 +60,8 @@ module.exports.shaven = (config, tools) ->
 						startAngle: sectionAngle * index
 						endAngle: sectionAngle * (index + 1)
 						fill: if grayCodeTable[index][position] % 2 is 0 \
-							then 'white'
-							else 'black'
+							then foregroundColor
+							else backgroundColor
 					}
 
 				# Merge adjacent sections with same color
@@ -97,30 +103,31 @@ module.exports.shaven = (config, tools) ->
 
 	return [
 		'svg'
-		width: diskDiameter + 'mm'
-		height: diskDiameter + 'mm'
+		width: discDiameter + 'mm'
+		height: discDiameter + 'mm'
 		viewBox: [
 			0
 			0
-			diskDiameter
-			diskDiameter
+			discDiameter
+			discDiameter
 		]
 		['defs',
 			['clipPath#discWithAxleHole'
 				{
 					transform: [{
 						type: 'translate'
-						x: -diskDiameter/2
-						y: -diskDiameter/2
+						x: -discDiameter/2
+						y: -discDiameter/2
 					}]
 				}
 				['path', {
 					d: "M0,0
-						h#{diskDiameter}
-						v#{diskDiameter}
-						h#{-diskDiameter}
+						h#{discDiameter}
+						v#{discDiameter}
+						h#{-discDiameter}
 						z
-						M#{tracksWidth + axleMargin},#{diskDiameter/2}
+						M#{discPadding + tracksWidth + axleMargin},
+							#{discDiameter/2}
 						a 1,1 0 0 0 #{axleDiameter},0
 						a 1,1 0 0 0 #{-axleDiameter},0
 						z"
@@ -129,14 +136,18 @@ module.exports.shaven = (config, tools) ->
 		]
 		['g'
 			{
-				transform: "translate(#{diskDiameter/2},#{diskDiameter/2})"
+				transform: "translate(#{discDiameter/2},#{discDiameter/2})"
 				'clip-path': 'url(#discWithAxleHole)'
 			}
-			# The discs - one for each bit position
+			['circle', {
+				r: discDiameter/2
+				fill: fringeColor
+			}]
+			# The track discs - one for each bit position
 			discs...
 			['circle', {
 				r: axleMargin + axleDiameter/2
-				fill: 'lightgray'
+				fill: fringeColor
 			}]
 		]
 	]
