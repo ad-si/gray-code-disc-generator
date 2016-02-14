@@ -17,7 +17,10 @@ module.exports.shaven = (config, tools) ->
 		discPadding: 5
 		backgroundColor: 'black'
 		foregroundColor: 'white'
-		fringeColor: 'lightgray'
+		fringeColor: 'gray'
+		strokeColor: tools.rgb(255,0,0)
+		strokeWidth: 0.1
+		isLasercutterView: false
 
 	{
 		discDiameter
@@ -30,6 +33,9 @@ module.exports.shaven = (config, tools) ->
 		backgroundColor
 		foregroundColor
 		fringeColor
+		strokeColor
+		strokeWidth
+		isLasercutterView
 	} = Object.assign({}, defaults, config)
 
 	grayCodeTable = grayCode bits
@@ -59,17 +65,17 @@ module.exports.shaven = (config, tools) ->
 
 						startAngle: sectionAngle * index
 						endAngle: sectionAngle * (index + 1)
-						fill: if grayCodeTable[index][position] % 2 is 0 \
-							then foregroundColor
-							else backgroundColor
+						class: if grayCodeTable[index][position] % 2 is 0 \
+							then 'foreground'
+							else 'background'
 					}
 
 				# Merge adjacent sections with same color
 				.reduce (sections, currentSection, sectionIndex) ->
 
 					if (sections[sections.length - 1] and \
-					sections[sections.length - 1].fill is \
-					currentSection.fill)
+					sections[sections.length - 1].class is \
+					currentSection.class)
 
 						sections[sections.length - 1].endAngle = \
 							currentSection.endAngle
@@ -78,7 +84,7 @@ module.exports.shaven = (config, tools) ->
 
 					# Also merge last and first section
 					if sectionIndex is numberOfSections - 1 and \
-					sections[sections.length - 1].fill is sections[0].fill
+					sections[sections.length - 1].class is sections[0].class
 						# Merge last section into first section
 						sections[0].startAngle = \
 							sections[sections.length - 1].startAngle
@@ -94,7 +100,8 @@ module.exports.shaven = (config, tools) ->
 
 				.map (section, index) ->['path', {
 						d: section.pathString,
-						style: {fill: section.fill}
+						class: section.class + ' ' +
+							if isLasercutterView then 'lasercut'
 					}]
 
 		.map (sections) ->
@@ -110,6 +117,24 @@ module.exports.shaven = (config, tools) ->
 			0
 			discDiameter
 			discDiameter
+		]
+		['style',
+			"""
+			.foreground {
+				fill: #{foregroundColor};
+			}
+			.background {
+				fill: #{backgroundColor};
+			}
+			.fringe {
+				fill: #{fringeColor};
+			}
+			.lasercut {
+				fill: none !important;
+				stroke: #{strokeColor} !important;
+				stroke-width: #{strokeWidth} !important;
+			}
+			"""
 		]
 		['defs',
 			['clipPath#discWithAxleHole'
@@ -135,19 +160,30 @@ module.exports.shaven = (config, tools) ->
 			]
 		]
 		['g'
-			{
-				transform: "translate(#{discDiameter/2},#{discDiameter/2})"
-				'clip-path': 'url(#discWithAxleHole)'
-			}
+			fill: 'transparent'
+			transform: "translate(#{discDiameter/2},#{discDiameter/2})"
+			'clip-path': 'url(#discWithAxleHole)'
+
 			['circle', {
+				class: if isLasercutterView then 'lasercut' else 'fringe'
 				r: discDiameter/2
-				fill: fringeColor
+				style:
+					fill: if not isLasercutterView then fringeColor
+					stroke: if isLasercutterView then strokeColor
+					'stroke-width': strokeWidth
+
 			}]
+
 			# The track discs - one for each bit position
 			discs...
-			['circle', {
+
+			['circle.fringe'
 				r: axleMargin + axleDiameter/2
-				fill: fringeColor
-			}]
+				not isLasercutterView
+			]
+			['circle.lasercut'
+				r: axleDiameter/2
+				isLasercutterView
+			]
 		]
 	]
