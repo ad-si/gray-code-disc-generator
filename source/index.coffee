@@ -1,10 +1,22 @@
+shaven = require('shaven').default
 grayCode = require 'gray-code'
+CircleSector = require('circle-sector').default
 
-module.exports.shaven = (config, tools) ->
+binaryCodeTable = (bits) ->
+	return new Array Math.pow(2, bits)
+		.fill()
+		.map((value, index) =>
+			(new Array(bits).fill(0).join('') + index.toString(2))
+				.slice(-bits)
+				.split('')
+		)
+
+
+getShavenArray = (config) ->
 
 	defaults =
 		# Resolution
-		bits: 8
+		bits: 10
 
 		# Dimenstions
 		discDiameter: 120
@@ -18,9 +30,11 @@ module.exports.shaven = (config, tools) ->
 		backgroundColor: 'black'
 		foregroundColor: 'white'
 		fringeColor: 'gray'
-		strokeColor: tools.rgb(255,0,0)
+		strokeColor: 'rgb(255, 0, 0)'
 		strokeWidth: 0.1
 		isLasercutterView: false
+		printAngleLabels: true
+		code: 'gray' # gray
 
 	{
 		discDiameter
@@ -36,9 +50,13 @@ module.exports.shaven = (config, tools) ->
 		strokeColor
 		strokeWidth
 		isLasercutterView
+		printAngleLabels
+		code
 	} = Object.assign({}, defaults, config)
 
-	grayCodeTable = grayCode bits
+	grayCodeTable = if code is 'gray' \
+		then grayCode bits
+		else binaryCodeTable bits
 	numberOfSections = Math.pow(2, bits)
 	tracksWidth = if trackWidth \
 		then (trackWidth + trackMargin) * bits
@@ -63,8 +81,8 @@ module.exports.shaven = (config, tools) ->
 							axleMargin +
 							((position + 1) * trackWidth)
 
-						startAngle: sectionAngle * index
-						endAngle: sectionAngle * (index + 1)
+						startAngleInDeg: sectionAngle * index
+						endAngleInDeg: sectionAngle * (index + 1)
 						class: if grayCodeTable[index][position] % 2 is 0 \
 							then 'foreground'
 							else 'background'
@@ -77,8 +95,8 @@ module.exports.shaven = (config, tools) ->
 					sections[sections.length - 1].class is \
 					currentSection.class)
 
-						sections[sections.length - 1].endAngle = \
-							currentSection.endAngle
+						sections[sections.length - 1].endAngleInDeg = \
+							currentSection.endAngleInDeg
 					else
 						sections.push currentSection
 
@@ -86,8 +104,8 @@ module.exports.shaven = (config, tools) ->
 					if sectionIndex is numberOfSections - 1 and \
 					sections[sections.length - 1].class is sections[0].class
 						# Merge last section into first section
-						sections[0].startAngle = \
-							sections[sections.length - 1].startAngle
+						sections[0].startAngleInDeg = \
+							sections[sections.length - 1].startAngleInDeg
 						# Remove last section
 						sections.pop()
 
@@ -95,18 +113,30 @@ module.exports.shaven = (config, tools) ->
 				,[]
 
 				.map (section, sectionIndex) ->
-					section.pathString = tools.circleSection section
+					circleSector = new CircleSector section
+					section.pathString = circleSector.svgPath
 					return section
 
 				.map (section, index) ->['path', {
 						d: section.pathString,
-						class: section.class + ' ' +
-							if isLasercutterView then 'lasercut'
+						class: section.class + if isLasercutterView \
+							then ' lasercut'
+							else ''
 					}]
 
 		.map (sections) ->
 			return ['g', sections...]
 		.reverse()
+
+	labels = new Array numberOfSections
+		.fill()
+		.map (value, index) ->
+			angleInDeg = (360 / numberOfSections) * index
+			angleInRad = (Math.PI / numberOfSections) * index
+			['text', String(angleInDeg), {
+				x: tracksWidth * Math.cos(angleInRad)
+				y: tracksWidth * Math.sin(angleInRad)
+			}]
 
 	return [
 		'svg'
@@ -159,7 +189,7 @@ module.exports.shaven = (config, tools) ->
 				}]
 			]
 		]
-		['g'
+		['g.discs'
 			fill: 'transparent'
 			transform: "translate(#{discDiameter/2},#{discDiameter/2})"
 			'clip-path': 'url(#discWithAxleHole)'
@@ -186,4 +216,19 @@ module.exports.shaven = (config, tools) ->
 				isLasercutterView
 			]
 		]
+		# ['g.labels'
+		# 	labels...
+		# 	printAngleLabels
+		# ]
 	]
+
+module.exports.shaven = getShavenArray
+
+module.exports = () ->
+	return shaven(getShavenArray())
+		.rootElement
+		.replace(
+			'<svg',
+			'<svg xmlns="http://www.w3.org/2000/svg" ' +
+				'xmlns:xlink="http://www.w3.org/1999/xlink"'
+		)

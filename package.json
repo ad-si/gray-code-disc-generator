@@ -1,10 +1,17 @@
 {
-  "name": "gray-code-disk-generator",
+  "name": "gray-code-disc-generator",
   "version": "0.1.0",
   "description": "Create a gray-code disk in SVG with a specified resolution.",
   "main": "source/index.coffee",
+  "directories": {
+    "test": "tests"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "coffee tests/main.coffee"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adius/gray-code-disc-generator.git"
   },
   "keywords": [
     "gray code",
@@ -13,6 +20,11 @@
   "author": "Adrian Sieber",
   "license": "ISC",
   "dependencies": {
-    "gray-code": "0.0.0"
+    "circle-sector": "^0.2.0",
+    "gray-code": "0.0.0",
+    "shaven": "^1.0.0"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.10.0"
   }
 }
