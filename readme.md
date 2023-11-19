@@ -1,17 +1,12 @@
 # Gray Code Disc Generator
 
-Creates a gray-code disk in SVG with a specified resolution.
+Creates a gray-code disk as a SVG with a specified resolution.
 
-
-## Installation
-
-```shell
-npm install --global gray-code-disc-generator
-```
+![Example](example.svg)
 
 
 ## Usage
 
 ```shell
-generate-disc --resolution 8 > disc.svg
+bun source/cli.ts --resolution 10 > disc.svg
 ```
